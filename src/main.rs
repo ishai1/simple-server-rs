@@ -11,13 +11,6 @@ use hyper::service::service_fn;
 use hyper::{Method, Request, Response, StatusCode, body::Body};
 use tokio::net::TcpListener;
 
-async fn delayed_response() -> Result<Response<BoxBody<Bytes, hyper::Error>>, hyper::Error> {
-    let mut rng = rand::thread_rng();
-    let delay: u64 = rng.gen_range(0..1000);
-    tokio::time::sleep(tokio::time::Duration::from_millis(delay)).await;
-    Ok(Response::new(full("Hello, World!")))
-}
-
 /// This is our service handler. It receives a Request, routes on its
 /// path, and returns a Future of a Response.
 async fn respond(
@@ -69,6 +62,16 @@ async fn respond(
 
             let reversed_body = whole_body.iter().rev().cloned().collect::<Vec<u8>>();
             Ok(Response::new(full(reversed_body)))
+        }
+
+        // New endpoint for delayed response
+        (&Method::GET, "/delayed") => {
+            let mut rng = rand::rngs::StdRng::from_entropy();
+            let delay: u64 = rng.gen_range(2..30);
+            println!("delaying {} seconds", delay);
+            tokio::time::sleep(tokio::time::Duration::from_secs(delay)).await;
+            let response_string = format!("Response time: {} seconds", delay);
+            Ok(Response::new(full(response_string)))
         }
 
         // Return the 404 Not Found for other routes.
